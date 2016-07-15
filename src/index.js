@@ -105,7 +105,6 @@ function commitPackageWithReleaseData() {
   }
 }
 
-console.log(argv)
 if (argv.i) {
   init();
 } else if (argv.r) {
