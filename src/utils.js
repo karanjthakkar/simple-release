@@ -115,6 +115,8 @@ function updatePackageWithLatestReleaseInfo(recentCommitsForAllRepos, packageDat
           'message': commit.message
         };
       });
+    } else {
+      data.releases[recentCommitsForARepo.repo.name] = packageData.releases[recentCommitsForARepo.repo.name];
     }
   });
   writeToPackage(data, packageData, callback);
