@@ -14,6 +14,7 @@ var updatePackageVersionWithTag = utils.updatePackageVersionWithTag;
 var createReleaseWithTheLatestTag = utils.createReleaseWithTheLatestTag;
 var generateChangeLog = utils.generateChangeLog;
 var filterCommitsToRemoveLastReleasedCommit = utils.filterCommitsToRemoveLastReleasedCommit;
+var updatePackageWithLatestReleaseInfo = utils.updatePackageWithLatestReleaseInfo;
 
 var PROJECT_ROOT = '../frontend-web-server';
 var packageData = jsonfile.readFileSync(`${PROJECT_ROOT}/package.json`);
@@ -72,25 +73,34 @@ function release() {
   });
 
   var tag = packageData.version;
+  console.log('Updating package version.');
   updatePackageVersionWithTag(tag, 'patch', packageData, (err, packageData) => {
     tag = packageData.version;
     var projectRoot = path.resolve(PROJECT_ROOT);
-    var commitCommand = exec(`cd ${PROJECT_ROOT} && git add package.json && git commit -m "Bump package version to ${tag} && git tag ${tag} && git push origin master --tags"`)
+    console.log('Pushing updated package version.');
+    var commitCommand = exec(`cd ${PROJECT_ROOT} && git add package.json && git commit -m "Bump package version to ${tag}" && git tag ${tag} && git push origin master --tags`)
+    console.log('Pushed updated package version.');
     if (commitCommand.code !== 0) {
       console.log('Error pushing changes', err);
     } else {
+      console.log('Fetching new commits since the last release.');
       async.map(repos, getLatestCommitsForEachRepo, (err, recentCommitsForAllRepos) => {
         if (err) {
-          console.log(err);
+          console.log('Error fetching new commits', err);
         } else {
-          recentCommitsForAllRepos = filterCommitsToRemoveLastReleasedCommit(recentCommitsForAllRepos, packageData)
+          recentCommitsForAllRepos = filterCommitsToRemoveLastReleasedCommit(recentCommitsForAllRepos, packageData);
+          console.log('Generating changelog.');
           var changelog = generateChangeLog(recentCommitsForAllRepos);
+          console.log('Changelog: \n', changelog);
           var repo = repos.filter((repo) => {
             return repo.main;
           });
+          console.log('Creating release...');
           createReleaseWithTheLatestTag(repo[0], tag, changelog);
+          console.log('Update package with the lastest release data');
           updatePackageWithLatestReleaseInfo(recentCommitsForAllRepos, packageData, (err, packageData) => {
             commitPackageWithReleaseData();
+            console.log('Release complete.');
           });
         }
       });
