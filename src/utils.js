@@ -1,17 +1,20 @@
 var jsonfile = require('jsonfile');
+var semver = require('semver');
 var GitHubApi = require('github');
 var github = new GitHubApi({
   'timeout': 5000
 });
+
+var PROJECT_ROOT = '../frontend-web-server';
 
 github.authenticate({
   'type': 'oauth',
   'token': '434bd8a928c1c856c51080f7b8fe3596fdc7e59b'
 });
 
-exports.getRecentCommitForRepo = function getRecentCommitForRepo(repo, callback) {
+function getRecentCommitForRepo(repo, callback) {
   github.repos.getCommits({
-    'per_page': 2,
+    'per_page': 1,
     'user': repo.user,
     'repo': repo.name
   }, function(err, res) {
@@ -23,33 +26,31 @@ exports.getRecentCommitForRepo = function getRecentCommitForRepo(repo, callback)
           'name': repo.name,
           'user': repo.user
         },
-        'sha': res[1].sha,
-        'shaUrl': res[1].url,
-        'author': res[1].author.login,
-        'authorUrl': res[1].author.html_url,
-        'message': res[1].commit.message
+        'sha': res[0].sha,
+        'author': res[0].author.login,
+        'message': res[0].commit.message,
+        'since': res[0].commit.author.date
       } || {});
     }
   });
-};
+}
 
-exports.getLatestCommitsForEachRepo = function getLatestCommitsForEachRepo(repo, callback) {
+function getLatestCommitsForEachRepo(repo, callback) {
   github.repos.getCommits({
     'per_page': 100,
-    'sha': repo.sha,
+    'since': repo.since,
     'user': repo.user,
     'repo': repo.name
   }, function(err, commits) {
     if (err) {
       callback(err);
     } else {
-      res = commits.map((commit) => {
+      commits = commits.map((commit) => {
         return {
           'sha': commit.sha,
-          'shaUrl': commit.url,
-          'author': commit.author.login,
-          'authorUrl': commit.author.html_url,
-          'message': commit.commit.message
+          'author': commit.author ? commit.author.login : commit.commit.author.name,
+          'message': commit.commit.message,
+          'since': commit.commit.author.date
         };
       });
       callback(null, {
@@ -61,37 +62,106 @@ exports.getLatestCommitsForEachRepo = function getLatestCommitsForEachRepo(repo,
       });
     }
   });
-};
+}
 
-exports.formatDataForWritingToPackage = function formatDataForWritingToPackage(data) {
+function formatDataForWritingToPackage(data) {
   var returnObj = {};
   data.forEach((item) => {
     returnObj[item.repo.name] = {
-      'lastSHA': item.sha
+      'lastSHA': item.sha,
+      'since': item.since,
+      'message': item.message
     }
   });
   return {
     'releases': returnObj
   };
-};
+}
 
-exports.writeToPackage = function writeToPackage(data, oldPackageData) {
-  data = Object.assign(oldPackageData, data);
-  jsonfile.writeFile('../frontend-web-server/package.json', data, {
+function writeToPackage(data, packageData, callback) {
+  data = Object.assign(packageData, data);
+  jsonfile.writeFile(`${PROJECT_ROOT}/package.json`, data, {
     'spaces': 2
   }, (err) => {
     if (err) {
-      console.error(err)
+      console.error(err);
+      callback(err);
     } else {
       console.error('Write Successful');
+      callback(null, data);
     }
   });
-};
+}
 
-exports.updatePackageVersionWithTag = function updatePackageVersionWithTag(tag, oldPackageData) {
-  var newTag = semver.inc(tag, 'minor');
+function updatePackageVersionWithTag(tag, type, packageData, callback) {
+  var newTag = semver.inc(tag, type);
   data = {
     'version': newTag
   };
-  writeToPackage(data, oldPackageData);
+  writeToPackage(data, packageData, callback);
+}
+
+function updatePackageWithLatestReleaseInfo(recentCommitsForAllRepos, packageData, callback) {
+  var data = {
+    'releases': {}
+  };
+  recentCommitsForAllRepos.forEach((recentCommitsForARepo) => {
+    if (recentCommitsForARepo.commits.length > 0) {
+      recentCommitsForARepo.commits.forEach((commit) => {
+        commit.message = commit.message.split(/\n|\r/gi)[0];
+        data.releases[recentCommitsForARepo.repo.name] = {
+          'lastSHA': commit.sha,
+          'since': commit.since,
+          'message': commit.message
+        };
+      });
+    }
+  });
+  writeToPackage(data, packageData, callback);
+}
+
+function createReleaseWithTheLatestTag(repo, tag, changelog) {
+  github.repos.createRelease({
+    'user': repo.user,
+    'repo': repo.name,
+    'tag_name': tag,
+    'name': `Release ${tag}`,
+    'body': changelog
+  });
+}
+
+function generateChangeLog(recentCommitsForAllRepos) {
+  var message = '';
+  recentCommitsForAllRepos.forEach((recentCommitsForARepo) => {
+    if (recentCommitsForARepo.commits.length > 0) {
+      message += `# ${recentCommitsForARepo.repo.name} \n\n`
+      recentCommitsForARepo.commits.forEach((commit) => {
+        commit.message = commit.message.split(/\n|\r/gi)[0];
+        message += `- ${commit.message} - @${commit.author} (${recentCommitsForARepo.repo.user}/${recentCommitsForARepo.repo.name}@${commit.sha}) \n`
+      });
+      message += '\n\n';
+    }
+  });
+  return message;
+}
+
+function filterCommitsToRemoveLastReleasedCommit(recentCommitsForAllRepos, packageData) {
+  return recentCommitsForAllRepos.map((recentCommitsForARepo) => {
+    recentCommitsForARepo.commits = recentCommitsForARepo.commits.filter((commit) => {
+      return packageData.releases[recentCommitsForARepo.repo.name].lastSHA === commit.sha;
+    });
+    return recentCommitsForARepo;
+  });
+}
+
+module.exports = {
+  getRecentCommitForRepo,
+  getLatestCommitsForEachRepo,
+  formatDataForWritingToPackage,
+  writeToPackage,
+  updatePackageVersionWithTag,
+  createReleaseWithTheLatestTag,
+  generateChangeLog,
+  filterCommitsToRemoveLastReleasedCommit,
+  updatePackageWithLatestReleaseInfo
 };
