@@ -148,7 +148,7 @@ function generateChangeLog(recentCommitsForAllRepos) {
 function filterCommitsToRemoveLastReleasedCommit(recentCommitsForAllRepos, packageData) {
   return recentCommitsForAllRepos.map((recentCommitsForARepo) => {
     recentCommitsForARepo.commits = recentCommitsForARepo.commits.filter((commit) => {
-      return packageData.releases[recentCommitsForARepo.repo.name].lastSHA === commit.sha;
+      return packageData.releases[recentCommitsForARepo.repo.name].lastSHA !== commit.sha;
     });
     return recentCommitsForARepo;
   });

@@ -77,7 +77,7 @@ function release() {
     var projectRoot = path.resolve(PROJECT_ROOT);
     var commitCommand = exec(`cd ${PROJECT_ROOT} && git add package.json && git commit -m "Bump package version to ${tag} && git tag ${tag} && git push origin master --tags"`)
     if (commitCommand.code !== 0) {
-      console.log('Error staging changes', err);
+      console.log('Error pushing changes', err);
     } else {
       async.map(repos, getLatestCommitsForEachRepo, (err, recentCommitsForAllRepos) => {
         if (err) {
