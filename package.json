@@ -4,6 +4,7 @@
   "description": "A module for managing release of nested projects",
   "main": "src/index.js",
   "scripts": {
+    "start": "node src",
     "test": "npm test"
   },
   "repository": {
@@ -26,5 +27,10 @@
   "bugs": {
     "url": "https://github.com/karanjthakkar/simple-release/issues"
   },
-  "homepage": "https://github.com/karanjthakkar/simple-release#readme"
+  "homepage": "https://github.com/karanjthakkar/simple-release#readme",
+  "dependencies": {
+    "async": "^2.0.0",
+    "github": "^2.2.0",
+    "jsonfile": "^2.3.1"
+  }
 }
