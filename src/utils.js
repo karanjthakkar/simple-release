@@ -9,7 +9,7 @@ var PROJECT_ROOT = '../frontend-web-server';
 
 github.authenticate({
   'type': 'oauth',
-  'token': '434bd8a928c1c856c51080f7b8fe3596fdc7e59b'
+  'token': process.env.GITHUB_TOKEN
 });
 
 function getRecentCommitForRepo(repo, callback) {
