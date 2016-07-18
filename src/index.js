@@ -3,6 +3,7 @@ require('shelljs/global');
 var async = require('async');
 var jsonfile = require('jsonfile');
 var path = require('path');
+var inquirer = require('inquirer');
 
 var utils = require('./utils');
 var getRecentCommitForRepo = utils.getRecentCommitForRepo;
@@ -19,51 +20,117 @@ var hasNoUpdatesInAnyRepo = utils.hasNoUpdatesInAnyRepo;
 
 var PROJECT_ROOT = '../frontend-web-server';
 var packageData = jsonfile.readFileSync(`${PROJECT_ROOT}/package.json`);
-var repos = [{
-  user: 'Codigami',
-  name: 'frontend-web-server',
-  main: true
-}, {
-  user: 'Codigami',
-  name: 'cfcore-frontend',
-  main: false
-}, {
-  user: 'Codigami',
-  name: 'publish-frontend',
-  main: false
-}, {
-  user: 'Codigami',
-  name: 'publish-web-standalone',
-  main: false
-}, {
-  user: 'Codigami',
-  name: 'Crowdfire-Frontend',
-  main: false
-}, {
-  user: 'Codigami',
-  name: 'cf-web-2.0',
-  main: false
-}];
+var repos = [];
+
+function askForMainProject(cb) {
+  inquirer.prompt([{
+    name: 'mainProjectName',
+    message: 'Enter the name of your project\'s github repository: '
+  }, {
+    name: 'mainProjectUser',
+    message: 'Enter the owner username for the project: '
+  }]).then(function(answers) {
+    repos.push({
+      'user': answers.mainProjectUser,
+      'name': answers.mainProjectName,
+      'main': true
+    });
+    cb();
+  });
+}
+
+function confirmAnyDependentProjects(cb) {
+  inquirer.prompt([{
+    type: 'confirm',
+    name: 'hasMoreDependentProjects',
+    message: 'Do you have any more dependent projects: '
+  }]).then(function(answers) {
+    if (answers.hasMoreDependentProjects) {
+      cb();
+    } else {
+      cb('skip');
+    }
+  });
+}
+
+function askForDependentProjects(cb) {
+  inquirer.prompt([{
+    name: 'dependentProjectName',
+    message: 'Enter the name of your project\'s github repository: '
+  }, {
+    name: 'dependentProjectUser',
+    message: 'Enter the owner username for the project: '
+  }, {
+    type: 'confirm',
+    name: 'hasMoreDependentProjects',
+    message: 'Do you have any more dependent projects: '
+  }]).then(function(answers) {
+    repos.push({
+      'user': answers.dependentProjectUser,
+      'name': answers.dependentProjectName,
+      'main': false
+    });
+    if (answers.hasMoreDependentProjects) {
+      askForDependentProjects(cb);
+    } else {
+      cb();
+    }
+  });
+}
+
+function setup(cb) {
+  var mainProjectName = '';
+  async.waterfall([
+    askForMainProject,
+    confirmAnyDependentProjects,
+    askForDependentProjects
+  ], function(err) {
+    if (err && err !== 'skip') {
+      cb(err);
+    } else {
+      cb();
+    }
+  });
+}
+
+function initializeProject() {
+  console.log(repos);
+}
 
 function init() {
-  if (packageData.releases) {
-    console.log('Already initialized.');
-  } else {
-    async.map(repos, getRecentCommitForRepo, (err, recentCommits) => {
+  var mainProject = '';
+  // if (packageData.releases) {
+  //   console.log('Already initialized.');
+  // } else {
+
+    async.series([
+      setup,
+      initializeProject
+    ], function(err) {
       if (err) {
-        console.log(err);
+        console.log('Error initializing ', err);
       } else {
-        var data = formatDataForWritingToPackage(recentCommits);
-        writeToPackage(data, packageData, (err) => {
-          if (err) {
-            console.log('Error initializing.');
-          } else {
-            commitPackageWithReleaseData();
-          }
-        });
+        console.log('Setup and initialization complete. You can now type \'simple release\' whenever you want to create and publish a release.');
       }
-    });
-  }
+    })
+
+    // setup();
+    // initializeProject();
+    // async.map(repos, getRecentCommitForRepo, (err, recentCommits) => {
+    //   if (err) {
+    //     console.log(err);
+    //   } else {
+    //     var data = formatDataForWritingToPackage(recentCommits);
+    //     writeToPackage(data, packageData, (err) => {
+    //       if (err) {
+    //         console.log('Error initializing.');
+    //       } else {
+    //         commitPackageWithReleaseData();
+    //       }
+    //     });
+    //   }
+    // });
+  // }
 }
 
 function release() {
