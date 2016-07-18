@@ -3,10 +3,8 @@
   "version": "0.0.1",
   "description": "A module for managing release of nested projects",
   "main": "src/index.js",
-  "scripts": {
-    "i": "node src -i",
-    "r": "node src -r",
-    "test": "npm test"
+  "bin": {
+    "simple": "src/cli.js"
   },
   "repository": {
     "type": "git",
@@ -31,9 +29,10 @@
   "homepage": "https://github.com/karanjthakkar/simple-release#readme",
   "dependencies": {
     "async": "^2.0.0",
+    "cli-list": "^0.1.8",
     "github": "^2.2.0",
     "jsonfile": "^2.3.1",
-    "minimist": "^1.2.0",
+    "meow": "^3.7.0",
     "semver": "^5.3.0",
     "shelljs": "^0.7.0"
   }

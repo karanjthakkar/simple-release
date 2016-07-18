@@ -87,7 +87,6 @@ function writeToPackage(data, packageData, callback) {
       console.error(err);
       callback(err);
     } else {
-      console.error('Write Successful');
       callback(null, data);
     }
   });

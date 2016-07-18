@@ -3,7 +3,6 @@ require('shelljs/global');
 var async = require('async');
 var jsonfile = require('jsonfile');
 var path = require('path');
-var argv = require('minimist')(process.argv.slice(2));
 
 var utils = require('./utils');
 var getRecentCommitForRepo = utils.getRecentCommitForRepo;
@@ -154,10 +153,7 @@ function commitPackageWithReleaseData() {
   }
 }
 
-if (argv.i) {
-  init();
-} else if (argv.r) {
-  release();
-} else {
-  console.log('Option not recognized.');
-}
+module.exports = {
+  init,
+  release
+};
