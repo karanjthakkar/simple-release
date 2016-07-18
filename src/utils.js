@@ -107,14 +107,13 @@ function updatePackageWithLatestReleaseInfo(recentCommitsForAllRepos, packageDat
   };
   recentCommitsForAllRepos.forEach((recentCommitsForARepo) => {
     if (recentCommitsForARepo.commits.length > 0) {
-      recentCommitsForARepo.commits.forEach((commit) => {
-        commit.message = commit.message.split(/\n|\r/gi)[0];
-        data.releases[recentCommitsForARepo.repo.name] = {
-          'lastSHA': commit.sha,
-          'since': commit.since,
-          'message': commit.message
-        };
-      });
+      var commit = recentCommitsForARepo.commits[0];
+      commit.message = commit.message.split(/\n|\r/gi)[0];
+      data.releases[recentCommitsForARepo.repo.name] = {
+        'lastSHA': commit.sha,
+        'since': commit.since,
+        'message': commit.message
+      };
     } else {
       data.releases[recentCommitsForARepo.repo.name] = packageData.releases[recentCommitsForARepo.repo.name];
     }
@@ -156,6 +155,30 @@ function filterCommitsToRemoveLastReleasedCommit(recentCommitsForAllRepos, packa
   });
 }
 
+function hasNoUpdatesInAnyRepo(recentCommitsForAllRepos) {
+  var totalCommits = 0;
+  recentCommitsForAllRepos.forEach((recentCommitsForARepo) => {
+    totalCommits += recentCommitsForARepo.commits.length;
+  });
+  return totalCommits === 0;
+}
+
+function filterCommitsToRemoveRedundantCommits(recentCommitsForAllRepos) {
+  const redundantStrings = ['Bump package version to', 'Update package with release info'];
+  return recentCommitsForAllRepos.map((recentCommitsForARepo) => {
+    recentCommitsForARepo.commits = recentCommitsForARepo.commits.filter((commit) => {
+      var isRedundant = false;
+      redundantStrings.forEach((item) => {
+        if (!isRedundant && commit.message.indexOf(item) > -1) {
+          isRedundant = true;
+        }
+      });
+      return !isRedundant;
+    });
+    return recentCommitsForARepo;
+  });
+}
+
 module.exports = {
   getRecentCommitForRepo,
   getLatestCommitsForEachRepo,
@@ -165,5 +188,7 @@ module.exports = {
   createReleaseWithTheLatestTag,
   generateChangeLog,
   filterCommitsToRemoveLastReleasedCommit,
-  updatePackageWithLatestReleaseInfo
+  updatePackageWithLatestReleaseInfo,
+  hasNoUpdatesInAnyRepo,
+  filterCommitsToRemoveRedundantCommits
 };
