@@ -5,8 +5,6 @@ var github = new GitHubApi({
   'timeout': 5000
 });
 
-var PROJECT_ROOT = '../test-simple-main';
-
 github.authenticate({
   'type': 'oauth',
   'token': process.env.GITHUB_TOKEN
@@ -83,7 +81,7 @@ function formatDataForWritingToPackage(repos, recentCommits) {
 
 function writeToPackage(data, packageData, callback) {
   data = Object.assign(packageData, data);
-  jsonfile.writeFile(`${PROJECT_ROOT}/package.json`, data, {
+  jsonfile.writeFile(`${process.cwd()}/package.json`, data, {
     'spaces': 2
   }, (err) => {
     if (err) {

@@ -18,7 +18,6 @@ var filterCommitsToRemoveRedundantCommits = utils.filterCommitsToRemoveRedundant
 var updatePackageWithLatestReleaseInfo = utils.updatePackageWithLatestReleaseInfo;
 var hasNoUpdatesInAnyRepo = utils.hasNoUpdatesInAnyRepo;
 
-var PROJECT_ROOT = '../test-simple-main';
 var repos = [];
 
 function askForMainProject(cb) {
@@ -92,7 +91,7 @@ function setup(cb) {
 }
 
 function initializeProject(cb) {
-  var packageData = jsonfile.readFileSync(`${PROJECT_ROOT}/package.json`);
+  var packageData = jsonfile.readFileSync(`${process.cwd()}/package.json`);
   async.map(repos, getRecentCommitForRepo, (err, recentCommits) => {
     if (err) {
       cb(err);
@@ -126,7 +125,7 @@ function init() {
 }
 
 function release() {
-  var packageData = jsonfile.readFileSync(`${PROJECT_ROOT}/package.json`);
+  var packageData = jsonfile.readFileSync(`${process.cwd()}/package.json`);
   var repos = packageData['simple-release'].config;
 
   repos = repos.map((item) => {
@@ -165,8 +164,8 @@ function release() {
     function pushUpdatedPackageJsonWithTags(recentCommitsForAllRepos, packageData, cb) {
       console.log('Pushing updated package.');
       var currentVersion = packageData.version;
-      var projectRoot = path.resolve(PROJECT_ROOT);
-      var commitCommand = exec(`cd ${PROJECT_ROOT} && git add package.json && git commit -q -m "Bump package version to ${currentVersion}" && git tag ${currentVersion} && git push origin master -q --tags`)
+      var projectRoot = path.resolve(process.cwd());
+      var commitCommand = exec(`cd ${process.cwd()} && git add package.json && git commit -q -m "Bump package version to ${currentVersion}" && git tag ${currentVersion} && git push origin master -q --tags`)
       console.log('Pushed updated package.');
       if (commitCommand.code !== 0) {
         console.log('Error pushing changes');
@@ -209,7 +208,7 @@ function release() {
 }
 
 function commitPackageWithReleaseData() {
-  var commitCommand = exec(`cd ${PROJECT_ROOT} && git add package.json && git commit -q -m "Update package with release info" && git push origin master -q`);
+  var commitCommand = exec(`cd ${process.cwd()} && git add package.json && git commit -q -m "Update package with release info" && git push origin master -q`);
   if (commitCommand.code !== 0) {
     console.log('Error commiting release info');
   }
