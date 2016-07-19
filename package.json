@@ -1,7 +1,7 @@
 {
   "name": "simple-release",
   "version": "0.0.1",
-  "description": "A module for managing release of nested projects",
+  "description": "An npm module for managing release of nested projects",
   "main": "src/index.js",
   "bin": {
     "simple": "src/cli.js"
