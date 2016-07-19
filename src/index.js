@@ -25,7 +25,7 @@ var repos = [];
 function askForMainProject(cb) {
   inquirer.prompt([{
     name: 'mainProjectUrl',
-    message: 'Enter the url of your project\'s github repository: ',
+    message: 'Enter the url of your base project\'s github repository: ',
     validate: function(input) {
       const isValidUrl = isGithubUrl(input, {
         repository: true
