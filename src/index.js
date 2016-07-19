@@ -4,6 +4,8 @@ var async = require('async');
 var jsonfile = require('jsonfile');
 var path = require('path');
 var inquirer = require('inquirer');
+var gh = require('parse-github-url');
+var isGithubUrl = require('is-github-url');
 
 var utils = require('./utils');
 var getRecentCommitForRepo = utils.getRecentCommitForRepo;
@@ -22,15 +24,19 @@ var repos = [];
 
 function askForMainProject(cb) {
   inquirer.prompt([{
-    name: 'mainProjectName',
-    message: 'Enter the name of your project\'s github repository: '
-  }, {
-    name: 'mainProjectUser',
-    message: 'Enter the owner username for the project: '
+    name: 'mainProjectUrl',
+    message: 'Enter the url of your project\'s github repository: ',
+    validate: function(input) {
+      const isValidUrl = isGithubUrl(input, {
+        repository: true
+      });
+      return isValidUrl || 'Please enter a valid git url';
+    }
   }]).then(function(answers) {
+    const parsedGithubUrl = gh(answers.mainProjectUrl);
     repos.push({
-      'user': answers.mainProjectUser,
-      'name': answers.mainProjectName,
+      'user': parsedGithubUrl.owner,
+      'name': parsedGithubUrl.name,
       'main': true
     });
     cb();
@@ -53,20 +59,24 @@ function confirmAnyDependentProjects(cb) {
 
 function askForDependentProjects(cb) {
   inquirer.prompt([{
-    name: 'dependentProjectName',
-    message: 'Enter the name of your project\'s github repository: '
-  }, {
-    name: 'dependentProjectUser',
-    message: 'Enter the owner username for the project: '
+    name: 'dependentProjectUrl',
+    message: 'Enter the url of your project\'s github repository: ',
+    validate: function(input) {
+      const isValidUrl = isGithubUrl(input, {
+        repository: true
+      });
+      return isValidUrl || 'Please enter a valid git url';
+    }
   }, {
     type: 'confirm',
     name: 'hasMoreDependentProjects',
     message: 'Do you have any more dependent projects: '
   }]).then(function(answers) {
+    const parsedGithubUrl = gh(answers.dependentProjectUrl);
     repos.push({
-      'user': answers.dependentProjectUser,
-      'name': answers.dependentProjectName,
-      'main': false
+      'user': parsedGithubUrl.owner,
+      'name': parsedGithubUrl.name,
+      'main': true
     });
     if (answers.hasMoreDependentProjects) {
       askForDependentProjects(cb);
@@ -91,17 +101,21 @@ function setup(cb) {
 }
 
 function initializeProject(cb) {
+  console.log('Initializing project.');
   var packageData = jsonfile.readFileSync(`${process.cwd()}/package.json`);
+  console.log('Fetching latest commits.');
   async.map(repos, getRecentCommitForRepo, (err, recentCommits) => {
     if (err) {
       cb(err);
     } else {
+      console.log('Updating package with latest release info.');
       var data = formatDataForWritingToPackage(repos, recentCommits);
       writeToPackage(data, packageData, (err) => {
         if (err) {
           cb(err);
           console.log('Error initializing.');
         } else {
+          console.log('Pushing package with latest release info.');
           commitPackageWithReleaseData();
           cb();
         }
@@ -111,7 +125,6 @@ function initializeProject(cb) {
 }
 
 function init() {
-  var mainProject = '';
   async.series([
     setup,
     initializeProject
@@ -119,7 +132,7 @@ function init() {
     if (err) {
       console.log('Error initializing ', err);
     } else {
-      console.log('Setup and initialization complete. You can now type \'simple release\' whenever you want to create and publish a release.');
+      console.log('Setup and initialization complete. \nYou can now type \'simple release\' whenever you want to create and publish a release.');
     }
   });
 }
