@@ -5,7 +5,7 @@ var github = new GitHubApi({
   'timeout': 5000
 });
 
-var PROJECT_ROOT = '../frontend-web-server';
+var PROJECT_ROOT = '../test-simple-main';
 
 github.authenticate({
   'type': 'oauth',
@@ -64,9 +64,9 @@ function getLatestCommitsForEachRepo(repo, callback) {
   });
 }
 
-function formatDataForWritingToPackage(data) {
+function formatDataForWritingToPackage(repos, recentCommits) {
   var returnObj = {};
-  data.forEach((item) => {
+  recentCommits.forEach((item) => {
     returnObj[item.repo.name] = {
       'lastSHA': item.sha,
       'since': item.since,
@@ -74,7 +74,10 @@ function formatDataForWritingToPackage(data) {
     }
   });
   return {
-    'releases': returnObj
+    'simple-release': {
+      'config': repos,
+      'releases': returnObj
+    }
   };
 }
 
@@ -102,19 +105,22 @@ function updatePackageVersionWithTag(tag, type, packageData, callback) {
 
 function updatePackageWithLatestReleaseInfo(recentCommitsForAllRepos, packageData, callback) {
   var data = {
-    'releases': {}
+    'simple-release': {
+      'config': packageData['simple-release'].config,
+      'releases': { }
+    }
   };
   recentCommitsForAllRepos.forEach((recentCommitsForARepo) => {
     if (recentCommitsForARepo.commits.length > 0) {
       var commit = recentCommitsForARepo.commits[0];
       commit.message = commit.message.split(/\n|\r/gi)[0];
-      data.releases[recentCommitsForARepo.repo.name] = {
+      data['simple-release'].releases[recentCommitsForARepo.repo.name] = {
         'lastSHA': commit.sha,
         'since': commit.since,
         'message': commit.message
       };
     } else {
-      data.releases[recentCommitsForARepo.repo.name] = packageData.releases[recentCommitsForARepo.repo.name];
+      data['simple-release'].releases[recentCommitsForARepo.repo.name] = packageData['simple-release'].releases[recentCommitsForARepo.repo.name];
     }
   });
   writeToPackage(data, packageData, callback);
@@ -148,7 +154,7 @@ function generateChangeLog(recentCommitsForAllRepos) {
 function filterCommitsToRemoveLastReleasedCommit(recentCommitsForAllRepos, packageData) {
   return recentCommitsForAllRepos.map((recentCommitsForARepo) => {
     recentCommitsForARepo.commits = recentCommitsForARepo.commits.filter((commit) => {
-      return packageData.releases[recentCommitsForARepo.repo.name].lastSHA !== commit.sha;
+      return packageData['simple-release'].releases[recentCommitsForARepo.repo.name].lastSHA !== commit.sha;
     });
     return recentCommitsForARepo;
   });

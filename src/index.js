@@ -18,8 +18,7 @@ var filterCommitsToRemoveRedundantCommits = utils.filterCommitsToRemoveRedundant
 var updatePackageWithLatestReleaseInfo = utils.updatePackageWithLatestReleaseInfo;
 var hasNoUpdatesInAnyRepo = utils.hasNoUpdatesInAnyRepo;
 
-var PROJECT_ROOT = '../frontend-web-server';
-var packageData = jsonfile.readFileSync(`${PROJECT_ROOT}/package.json`);
+var PROJECT_ROOT = '../test-simple-main';
 var repos = [];
 
 function askForMainProject(cb) {
@@ -79,7 +78,6 @@ function askForDependentProjects(cb) {
 }
 
 function setup(cb) {
-  var mainProjectName = '';
   async.waterfall([
     askForMainProject,
     confirmAnyDependentProjects,
@@ -93,50 +91,47 @@ function setup(cb) {
   });
 }
 
-function initializeProject() {
-  console.log(repos);
+function initializeProject(cb) {
+  var packageData = jsonfile.readFileSync(`${PROJECT_ROOT}/package.json`);
+  async.map(repos, getRecentCommitForRepo, (err, recentCommits) => {
+    if (err) {
+      cb(err);
+    } else {
+      var data = formatDataForWritingToPackage(repos, recentCommits);
+      writeToPackage(data, packageData, (err) => {
+        if (err) {
+          cb(err);
+          console.log('Error initializing.');
+        } else {
+          commitPackageWithReleaseData();
+          cb();
+        }
+      });
+    }
+  });
 }
 
 function init() {
   var mainProject = '';
-  // if (packageData.releases) {
-  //   console.log('Already initialized.');
-  // } else {
-
-    async.series([
-      setup,
-      initializeProject
-    ], function(err) {
-      if (err) {
-        console.log('Error initializing ', err);
-      } else {
-        console.log('Setup and initialization complete. You can now type \'simple release\' whenever you want to create and publish a release.');
-      }
-    })
-
-    // setup();
-    // initializeProject();
-    // async.map(repos, getRecentCommitForRepo, (err, recentCommits) => {
-    //   if (err) {
-    //     console.log(err);
-    //   } else {
-    //     var data = formatDataForWritingToPackage(recentCommits);
-    //     writeToPackage(data, packageData, (err) => {
-    //       if (err) {
-    //         console.log('Error initializing.');
-    //       } else {
-    //         commitPackageWithReleaseData();
-    //       }
-    //     });
-    //   }
-    // });
-  // }
+  async.series([
+    setup,
+    initializeProject
+  ], function(err) {
+    if (err) {
+      console.log('Error initializing ', err);
+    } else {
+      console.log('Setup and initialization complete. You can now type \'simple release\' whenever you want to create and publish a release.');
+    }
+  });
 }
 
 function release() {
+  var packageData = jsonfile.readFileSync(`${PROJECT_ROOT}/package.json`);
+  var repos = packageData['simple-release'].config;
+
   repos = repos.map((item) => {
     return Object.assign(item, {
-      'since': packageData.releases[item.name].since
+      'since': packageData['simple-release'].releases[item.name].since
     });
   });
 
