@@ -1,6 +1,6 @@
 {
   "name": "simple-release",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "An npm module for managing release of nested projects",
   "main": "src/index.js",
   "bin": {
