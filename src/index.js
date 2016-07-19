@@ -137,7 +137,7 @@ function init() {
   });
 }
 
-function release() {
+function release(releaseType) {
   var packageData = jsonfile.readFileSync(`${process.cwd()}/package.json`);
   var repos = packageData['simple-release'].config;
 
@@ -169,7 +169,7 @@ function release() {
     function updatePackageJsonBeforeRelease(recentCommitsForAllRepos, cb) {
       var currentVersion = packageData.version;
       console.log(`Updating package version. Current package version: ${currentVersion}.`);
-      updatePackageVersionWithTag(currentVersion, 'patch', packageData, (err, packageData) => {
+      updatePackageVersionWithTag(currentVersion, releaseType, packageData, (err, packageData) => {
         console.log(`Package updated to ${packageData.version}.`);
         cb(null, recentCommitsForAllRepos, packageData);
       });

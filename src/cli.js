@@ -20,19 +20,34 @@ var cli = gens.map(function (gen) {
 
 var firstCmd = cli[0] || { opts: {}, args: {} };
 var cmd = firstCmd.args[0];
+var cmd1 = firstCmd.args[1] || '';
 
 if (cmd === 'init') {
   simple.init();
 } else if (cmd === 'release') {
-  simple.release();
+  var supportedReleaseTypes = ['major', 'premajor', 'minor', 'preminor', 'patch', 'prepatch', 'prerelease'];
+  if (supportedReleaseTypes.indexOf(cmd1.toLowerCase()) > -1) {
+    simple.release(cmd1);
+  } else if (cmd1 === '') {
+    simple.release('patch');
+  } else {
+    console.log('Release type not supported.')
+  }
 } else if (firstCmd.opts.h || firstCmd.opts.help) {
   const help = `
     Usage:
 
-      $ simple init      // Run first time to initialize project
+    /* Run first time to initialize project */
+    $ simple init
 
-      $ simple release   // Run for every subsequent releases
-      
+
+    /* Run for every subsequent releases
+     * 'type' is a semver release type
+     * Suported values for type: major, premajor, minor, preminor, patch, prepatch, or prerelease
+     * Default type is 'patch'
+     */
+    $ simple release <type>
+
   `;
   console.log(help);
 } else {
