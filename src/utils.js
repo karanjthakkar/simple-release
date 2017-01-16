@@ -167,7 +167,12 @@ function hasNoUpdatesInAnyRepo(recentCommitsForAllRepos) {
 }
 
 function filterCommitsToRemoveRedundantCommits(recentCommitsForAllRepos) {
-  const redundantStrings = ['Bump package version to', 'Update package with release info'];
+  const redundantStrings = [
+    'Bump package version to',
+    'Update package with release info',
+    'Merge pull request',
+    'Merge branch'
+  ];
   return recentCommitsForAllRepos.map((recentCommitsForARepo) => {
     recentCommitsForARepo.commits = recentCommitsForARepo.commits.filter((commit) => {
       var isRedundant = false;
