@@ -13,7 +13,7 @@ github.authenticate({
 function getRecentCommitForRepo(repo, callback) {
   github.repos.getCommits({
     'per_page': 1,
-    'user': repo.user,
+    'owner': repo.user,
     'repo': repo.name
   }, function(err, res) {
     if (err) {
@@ -37,7 +37,7 @@ function getLatestCommitsForEachRepo(repo, callback) {
   github.repos.getCommits({
     'per_page': 100,
     'since': repo.since,
-    'user': repo.user,
+    'owner': repo.user,
     'repo': repo.name
   }, function(err, commits) {
     if (err) {
@@ -126,7 +126,7 @@ function updatePackageWithLatestReleaseInfo(recentCommitsForAllRepos, packageDat
 
 function createReleaseWithTheLatestTag(repo, tag, changelog) {
   github.repos.createRelease({
-    'user': repo.user,
+    'owner': repo.user,
     'repo': repo.name,
     'tag_name': tag,
     'name': `Release ${tag}`,
