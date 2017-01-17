@@ -2,7 +2,7 @@ var jsonfile = require('jsonfile');
 var semver = require('semver');
 var GitHubApi = require('github');
 var github = new GitHubApi({
-  'timeout': 5000
+  'timeout': 10000
 });
 
 github.authenticate({
